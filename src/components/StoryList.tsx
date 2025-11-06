@@ -53,7 +53,7 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
 
       const { data: story, error } = await supabase
         .from("stories")
-        .insert({ title, description, created_by: user.id })
+        .insert({ title, description })
         .select()
         .single();
 
