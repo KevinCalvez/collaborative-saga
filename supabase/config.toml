@@ -1,0 +1,4 @@
+project_id = "iqrwbeelfycntaongozd"
+
+[functions.narrative-ai]
+verify_jwt = false

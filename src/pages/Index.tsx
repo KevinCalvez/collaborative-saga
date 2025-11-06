@@ -1,14 +1,36 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Auth } from "@/components/Auth";
+import { StoryList } from "@/components/StoryList";
+import { StoryChat } from "@/components/StoryChat";
 
 const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const [session, setSession] = useState<any>(null);
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!session) {
+    return <Auth />;
+  }
+
+  if (selectedStoryId) {
+    return <StoryChat storyId={selectedStoryId} onBack={() => setSelectedStoryId(null)} />;
+  }
+
+  return <StoryList onSelectStory={setSelectedStoryId} />;
 };
 
 export default Index;
