@@ -27,9 +27,13 @@ export const Auth = () => {
         toast({ title: "Compte créé! Tu peux maintenant te connecter." });
       }
     } catch (error: any) {
+      const errorMessage = error.message === "User already registered" 
+        ? "Cet email est déjà utilisé. Essaie de te connecter à la place."
+        : error.message;
+      
       toast({
         title: "Erreur",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

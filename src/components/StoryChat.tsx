@@ -69,7 +69,12 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
           filter: `story_id=eq.${storyId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          setMessages((prev) => {
+            // Éviter les doublons
+            const exists = prev.find(msg => msg.id === payload.new.id);
+            if (exists) return prev;
+            return [...prev, payload.new as Message];
+          });
         }
       )
       .subscribe();
@@ -84,6 +89,9 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
     if (!newMessage.trim()) return;
 
     setLoading(true);
+    const messageContent = newMessage;
+    setNewMessage(""); // Vider immédiatement pour meilleure UX
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
@@ -91,13 +99,13 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
       const { error } = await supabase.from("messages").insert({
         story_id: storyId,
         user_id: user.id,
-        content: newMessage,
+        content: messageContent,
         is_ai_narrator: false,
       });
 
       if (error) throw error;
-      setNewMessage("");
     } catch (error: any) {
+      setNewMessage(messageContent); // Remettre le message en cas d'erreur
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
