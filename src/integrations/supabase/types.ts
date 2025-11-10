@@ -49,8 +49,33 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
+          config_id: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -59,6 +84,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          config_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -67,11 +93,53 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          config_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
           id?: string
           title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "story_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_configs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_template: boolean | null
+          name: string
+          system_prompt: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean | null
+          name: string
+          system_prompt: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean | null
+          name?: string
+          system_prompt?: string
           updated_at?: string
         }
         Relationships: []
