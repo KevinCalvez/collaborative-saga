@@ -75,6 +75,11 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({ title: "Déconnexion réussie" });
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
@@ -82,12 +87,21 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
           <h1 className="text-4xl font-bold bg-[var(--gradient-gold)] bg-clip-text text-transparent">
             Tes Chroniques
           </h1>
-          <Button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-primary text-primary-foreground hover:shadow-[var(--shadow-glow)] transition-shadow"
-          >
-            {showCreateForm ? "Annuler" : "Nouvelle Histoire"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="border-border hover:bg-accent"
+            >
+              Déconnexion
+            </Button>
+            <Button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="bg-primary text-primary-foreground hover:shadow-[var(--shadow-glow)] transition-shadow"
+            >
+              {showCreateForm ? "Annuler" : "Nouvelle Histoire"}
+            </Button>
+          </div>
         </div>
 
         {showCreateForm && (
