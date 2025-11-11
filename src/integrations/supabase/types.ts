@@ -166,6 +166,8 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          is_public: boolean
+          password: string | null
           title: string
           updated_at: string
         }
@@ -175,6 +177,8 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          is_public?: boolean
+          password?: string | null
           title: string
           updated_at?: string
         }
@@ -184,6 +188,8 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          is_public?: boolean
+          password?: string | null
           title?: string
           updated_at?: string
         }
@@ -264,6 +270,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_story_content: {
+        Args: { _story_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_story_participant: {
         Args: { _story_id: string; _user_id: string }
         Returns: boolean
