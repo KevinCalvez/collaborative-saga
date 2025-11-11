@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Sparkles, Send } from "lucide-react";
+import { ArrowLeft, Sparkles, Send, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
   id: string;
@@ -26,12 +29,22 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [invoking, setInvoking] = useState(false);
+  const [autoNarrator, setAutoNarrator] = useState(false);
+  const [activeUsers, setActiveUsers] = useState<Array<{ id: string; username: string }>>([]);
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     loadMessages();
     subscribeToMessages();
+    setupPresence();
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
   }, [storyId]);
 
   useEffect(() => {
@@ -65,6 +78,42 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
     }
   };
 
+  const setupPresence = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .single();
+
+    const channel = supabase.channel(`story-${storyId}`, {
+      config: { presence: { key: user.id } }
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const users = Object.values(state).flat().map((presence: any) => ({
+          id: presence.user_id,
+          username: presence.username
+        }));
+        setActiveUsers(users);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: user.id,
+            username: profile?.username || "Joueur inconnu",
+            online_at: new Date().toISOString()
+          });
+        }
+      });
+
+    channelRef.current = channel;
+  };
+
   const subscribeToMessages = () => {
     const channel = supabase
       .channel(`messages-${storyId}`)
@@ -94,6 +143,13 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
             if (exists) return prev;
             return [...prev, { ...payload.new, username } as Message];
           });
+
+          // Auto-invoquer le narrateur si activé et message non-AI
+          if (autoNarrator && !payload.new.is_ai_narrator && payload.new.user_id) {
+            setTimeout(() => {
+              invokeNarrator();
+            }, 1000);
+          }
         }
       )
       .subscribe();
@@ -187,6 +243,33 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
+        
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {activeUsers.length} {activeUsers.length > 1 ? "joueurs actifs" : "joueur actif"}
+            </span>
+            <div className="flex gap-1 ml-2">
+              {activeUsers.map((user) => (
+                <Badge key={user.id} variant="secondary" className="text-xs">
+                  {user.username}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label htmlFor="auto-narrator" className="text-sm text-muted-foreground cursor-pointer">
+              Auto-narrateur
+            </Label>
+            <Switch
+              id="auto-narrator"
+              checked={autoNarrator}
+              onCheckedChange={setAutoNarrator}
+            />
+          </div>
+        </div>
       </div>
 
       <ScrollArea className="flex-1 p-4">
