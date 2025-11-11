@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      character_sheet_fields: {
+        Row: {
+          config_id: string
+          created_at: string
+          display_order: number
+          field_label: string
+          field_name: string
+          field_options: Json | null
+          field_type: string
+          id: string
+          is_required: boolean
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          display_order?: number
+          field_label: string
+          field_name: string
+          field_options?: Json | null
+          field_type: string
+          id?: string
+          is_required?: boolean
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          display_order?: number
+          field_label?: string
+          field_name?: string
+          field_options?: Json | null
+          field_type?: string
+          id?: string
+          is_required?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_sheet_fields_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "story_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_sheets: {
+        Row: {
+          created_at: string
+          field_values: Json
+          id: string
+          story_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_values?: Json
+          id?: string
+          story_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          field_values?: Json
+          id?: string
+          story_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_sheets_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_sheets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
