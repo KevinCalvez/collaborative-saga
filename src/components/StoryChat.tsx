@@ -13,6 +13,7 @@ interface Message {
   is_ai_narrator: boolean;
   created_at: string;
   user_id: string | null;
+  username?: string;
 }
 
 interface StoryChatProps {
@@ -46,14 +47,21 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
   const loadMessages = async () => {
     const { data, error } = await supabase
       .from("messages")
-      .select("*")
+      .select(`
+        *,
+        profiles:user_id (username)
+      `)
       .eq("story_id", storyId)
       .order("created_at", { ascending: true });
 
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } else {
-      setMessages(data || []);
+      const messagesWithUsernames = (data || []).map((msg: any) => ({
+        ...msg,
+        username: msg.profiles?.username || "Joueur inconnu"
+      }));
+      setMessages(messagesWithUsernames);
     }
   };
 
@@ -68,12 +76,23 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
           table: "messages",
           filter: `story_id=eq.${storyId}`,
         },
-        (payload) => {
+        async (payload) => {
+          // Charger le username pour le nouveau message
+          let username = "Joueur inconnu";
+          if (payload.new.user_id && !payload.new.is_ai_narrator) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("username")
+              .eq("id", payload.new.user_id)
+              .single();
+            username = profile?.username || "Joueur inconnu";
+          }
+
           setMessages((prev) => {
             // Éviter les doublons
             const exists = prev.find(msg => msg.id === payload.new.id);
             if (exists) return prev;
-            return [...prev, payload.new as Message];
+            return [...prev, { ...payload.new, username } as Message];
           });
         }
       )
@@ -130,7 +149,10 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
       }));
 
       const { data, error } = await supabase.functions.invoke("narrative-ai", {
-        body: { messages: recentMessages },
+        body: { 
+          messages: recentMessages,
+          storyId: storyId
+        },
       });
 
       if (error) throw error;
@@ -188,7 +210,7 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
                       message.is_ai_narrator ? "text-accent" : "text-primary"
                     }`}
                   >
-                    {message.is_ai_narrator ? "Narrateur" : "Joueur"}
+                    {message.is_ai_narrator ? "Narrateur" : message.username || "Joueur"}
                   </p>
                   <p className="text-foreground leading-relaxed">{message.content}</p>
                 </div>

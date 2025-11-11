@@ -12,19 +12,45 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, storyContext } = await req.json();
+    const { messages, storyId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `Tu es un narrateur de jeu de rôle expérimenté et créatif. 
+    // Charger la configuration de l'histoire si elle existe
+    let storyContext = "";
+    if (storyId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const storyResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/stories?id=eq.${storyId}&select=config_id,story_configs(system_prompt)`,
+          {
+            headers: {
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            }
+          }
+        );
+        
+        if (storyResponse.ok) {
+          const storyData = await storyResponse.json();
+          if (storyData && storyData[0]?.story_configs?.system_prompt) {
+            storyContext = storyData[0].story_configs.system_prompt;
+          }
+        }
+      } catch (err) {
+        console.error("Error loading story config:", err);
+      }
+    }
+
+    const systemPrompt = storyContext || `Tu es un narrateur de jeu de rôle expérimenté et créatif. 
 Tu continues les histoires de manière immersive et captivante.
 Tu adaptes ton style au contexte de l'histoire et aux actions des joueurs.
 Tu crées des rebondissements intéressants et des descriptions vivantes.
 Tu restes cohérent avec l'histoire précédente.
-${storyContext ? `Contexte de l'histoire: ${storyContext}` : ''}
 
 Réponds de manière concise (2-4 phrases maximum) pour permettre aux joueurs de réagir.`;
 

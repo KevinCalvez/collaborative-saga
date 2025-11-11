@@ -12,6 +12,14 @@ interface Story {
   title: string;
   description: string | null;
   created_at: string;
+  config_id: string | null;
+}
+
+interface StoryConfig {
+  id: string;
+  name: string;
+  description: string | null;
+  system_prompt: string;
 }
 
 interface StoryListProps {
@@ -20,14 +28,17 @@ interface StoryListProps {
 
 export const StoryList = ({ onSelectStory }: StoryListProps) => {
   const [stories, setStories] = useState<Story[]>([]);
+  const [storyConfigs, setStoryConfigs] = useState<StoryConfig[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     loadStories();
+    loadStoryConfigs();
   }, []);
 
   const loadStories = async () => {
@@ -43,6 +54,19 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
     }
   };
 
+  const loadStoryConfigs = async () => {
+    const { data, error } = await supabase
+      .from("story_configs")
+      .select("*")
+      .order("name");
+
+    if (error) {
+      console.error("Erreur chargement configs:", error);
+    } else {
+      setStoryConfigs(data || []);
+    }
+  };
+
   const createStory = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -53,7 +77,11 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
 
       const { data: story, error } = await supabase
         .from("stories")
-        .insert({ title, description })
+        .insert({ 
+          title, 
+          description,
+          config_id: selectedConfigId || null
+        })
         .select()
         .single();
 
@@ -66,6 +94,7 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
       toast({ title: "Histoire créée!" });
       setTitle("");
       setDescription("");
+      setSelectedConfigId("");
       setShowCreateForm(false);
       loadStories();
     } catch (error: any) {
@@ -124,6 +153,24 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
                   onChange={(e) => setDescription(e.target.value)}
                   className="bg-input border-border"
                 />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Thème de l'histoire
+                  </label>
+                  <select
+                    value={selectedConfigId}
+                    onChange={(e) => setSelectedConfigId(e.target.value)}
+                    className="w-full p-2 rounded-md border border-border bg-input text-foreground"
+                  >
+                    <option value="">Aucun thème spécifique</option>
+                    {storyConfigs.map((config) => (
+                      <option key={config.id} value={config.id}>
+                        {config.name}
+                        {config.description && ` - ${config.description}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <Button
                   type="submit"
                   disabled={loading}
