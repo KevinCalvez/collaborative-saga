@@ -29,7 +29,7 @@ export const InvitePlayer = ({ storyId }: InvitePlayerProps) => {
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("id")
-        .eq("id", email.trim());
+        .eq("username", email.trim());
 
       if (profileError) throw profileError;
 
@@ -90,7 +90,7 @@ export const InvitePlayer = ({ storyId }: InvitePlayerProps) => {
         <DialogHeader>
           <DialogTitle>Inviter un joueur</DialogTitle>
           <DialogDescription>
-            Entre l'ID utilisateur du joueur à inviter
+            Entre le pseudo du joueur à inviter
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={invitePlayer} className="space-y-4">
@@ -98,7 +98,7 @@ export const InvitePlayer = ({ storyId }: InvitePlayerProps) => {
             type="text"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="ID utilisateur"
+            placeholder="Pseudo du joueur"
             disabled={loading}
           />
           <Button type="submit" disabled={loading} className="w-full">
