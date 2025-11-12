@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+const inputSchema = z.object({
+  prompt: z.string().min(1).max(1000)
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,14 +40,19 @@ serve(async (req) => {
       });
     }
 
-    const { prompt } = await req.json();
+    const body = await req.json();
     
-    if (!prompt) {
+    // Validate input
+    const validation = inputSchema.safeParse(body);
+    if (!validation.success) {
+      console.error('Validation error:', validation.error);
       return new Response(
-        JSON.stringify({ error: "Le prompt est requis" }),
+        JSON.stringify({ error: "Prompt invalide" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+    
+    const { prompt } = validation.data;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -84,7 +94,10 @@ serve(async (req) => {
       }
       const errorText = await response.text();
       console.error("Erreur de l'AI gateway:", response.status, errorText);
-      throw new Error("Erreur lors de la génération de l'image");
+      return new Response(
+        JSON.stringify({ error: "Impossible de générer l'image" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     const data = await response.json();
@@ -103,7 +116,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Erreur dans generate-scene-image:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
+      JSON.stringify({ error: "Une erreur est survenue" }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

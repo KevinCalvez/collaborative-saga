@@ -11,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { InvitePlayer } from "@/components/InvitePlayer";
 import { CharacterSheet } from "@/components/CharacterSheet";
+import { z } from "zod";
+
+const messageSchema = z.object({
+  content: z.string().trim().min(1, "Le message ne peut pas être vide").max(5000, "Le message est trop long")
+});
 
 interface Message {
   id: string;
@@ -70,7 +75,8 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
       .order("created_at", { ascending: true });
 
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      console.error('Load messages error:', error);
+      toast({ title: "Erreur", description: "Impossible de charger les messages", variant: "destructive" });
     } else {
       const messagesWithUsernames = (data || []).map((msg: any) => ({
         ...msg,
@@ -163,10 +169,20 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    
+    // Validate input
+    const validation = messageSchema.safeParse({ content: newMessage });
+    if (!validation.success) {
+      toast({
+        title: "Erreur",
+        description: validation.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
-    const messageContent = newMessage;
+    const messageContent = newMessage.trim();
     setNewMessage(""); // Vider immédiatement pour meilleure UX
     
     try {
@@ -182,8 +198,13 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
 
       if (error) throw error;
     } catch (error: any) {
+      console.error('Send message error:', error);
       setNewMessage(messageContent); // Remettre le message en cas d'erreur
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "Erreur", 
+        description: "Impossible d'envoyer le message", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
@@ -224,9 +245,10 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
 
       if (insertError) throw insertError;
     } catch (error: any) {
+      console.error('Invoke narrator error:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Le narrateur ne répond pas",
+        description: "Le narrateur ne répond pas. Réessaye plus tard.",
         variant: "destructive",
       });
     } finally {

@@ -5,6 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
+import { z } from "zod";
+
+const usernameSchema = z.object({
+  username: z.string().trim().min(1, "Le pseudo ne peut pas être vide").max(50, "Le pseudo est trop long")
+});
 
 export const ProfileSettings = () => {
   const [username, setUsername] = useState("");
@@ -29,7 +34,8 @@ export const ProfileSettings = () => {
       .single();
 
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      console.error('Load profile error:', error);
+      toast({ title: "Erreur", description: "Impossible de charger le profil", variant: "destructive" });
     } else if (data) {
       setUsername(data.username);
     }
@@ -37,8 +43,15 @@ export const ProfileSettings = () => {
 
   const updateUsername = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) {
-      toast({ title: "Erreur", description: "Le pseudo ne peut pas être vide", variant: "destructive" });
+    
+    // Validate input
+    const validation = usernameSchema.safeParse({ username });
+    if (!validation.success) {
+      toast({
+        title: "Erreur",
+        description: validation.error.errors[0].message,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -57,7 +70,18 @@ export const ProfileSettings = () => {
       toast({ title: "Pseudo mis à jour!" });
       setOpen(false);
     } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      console.error('Update username error:', error);
+      
+      let userMessage = "Impossible de mettre à jour le pseudo";
+      if (error.code === '23505') {
+        userMessage = "Ce pseudo est déjà utilisé";
+      }
+      
+      toast({ 
+        title: "Erreur", 
+        description: userMessage, 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }

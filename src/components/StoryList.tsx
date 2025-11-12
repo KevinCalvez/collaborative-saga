@@ -13,6 +13,13 @@ import { Lock, Globe, Users, LogOut, Plus } from "lucide-react";
 import { JoinStoryDialog } from "./JoinStoryDialog";
 import { ProfileSettings } from "./ProfileSettings";
 import { ImageGenerator } from "./ImageGenerator";
+import { z } from "zod";
+
+const storySchema = z.object({
+  title: z.string().trim().min(1, "Le titre est requis").max(200, "Le titre est trop long"),
+  description: z.string().max(2000, "La description est trop longue").optional(),
+  password: z.string().max(100, "Le mot de passe est trop long").optional()
+});
 
 interface Story {
   id: string;
@@ -69,7 +76,8 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      console.error('Load stories error:', error);
+      toast({ title: "Erreur", description: "Impossible de charger les histoires", variant: "destructive" });
     } else {
       setStories(data || []);
     }
@@ -90,6 +98,23 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
 
   const createStory = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate input
+    const validation = storySchema.safeParse({ 
+      title, 
+      description: description || undefined,
+      password: password || undefined
+    });
+    
+    if (!validation.success) {
+      toast({
+        title: "Erreur de validation",
+        description: validation.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -99,8 +124,8 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
       const { data: story, error } = await supabase
         .from("stories")
         .insert({ 
-          title, 
-          description,
+          title: title.trim(), 
+          description: description.trim() || null,
           config_id: selectedConfigId || null,
           is_public: isPublic,
           password: password.trim() || null
@@ -123,7 +148,12 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
       setShowCreateForm(false);
       loadStories();
     } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      console.error('Create story error:', error);
+      toast({ 
+        title: "Erreur", 
+        description: "Impossible de créer l'histoire. Réessaye plus tard.", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
@@ -194,9 +224,18 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
       toast({ title: "Tu as rejoint l'histoire!" });
       onSelectStory(storyId);
     } catch (error: any) {
+      console.error('Join story error:', error);
+      
+      let userMessage = "Impossible de rejoindre l'histoire";
+      if (error.message?.includes("Mot de passe incorrect")) {
+        userMessage = "Mot de passe incorrect";
+      } else if (error.message?.includes("already exists")) {
+        userMessage = "Tu as déjà rejoint cette histoire";
+      }
+      
       toast({ 
         title: "Erreur", 
-        description: error.message, 
+        description: userMessage, 
         variant: "destructive" 
       });
     } finally {

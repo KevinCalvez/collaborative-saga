@@ -1,6 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+const inputSchema = z.object({
+  messages: z.array(z.object({
+    role: z.string(),
+    content: z.string().max(5000)
+  })).max(50),
+  storyId: z.string().uuid().optional()
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,7 +45,19 @@ serve(async (req) => {
       });
     }
 
-    const { messages, storyId } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validation = inputSchema.safeParse(body);
+    if (!validation.success) {
+      console.error('Validation error:', validation.error);
+      return new Response(JSON.stringify({ error: 'Invalid input data' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    const { messages, storyId } = validation.data;
     
     // Verify user is participant in the story
     if (storyId) {
@@ -132,7 +153,7 @@ Réponds de manière concise (2-4 phrases maximum) pour permettre aux joueurs de
       const errorText = await response.text();
       console.error("AI Gateway error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "Erreur du service IA" }),
+        JSON.stringify({ error: "Le narrateur ne répond pas" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -151,7 +172,7 @@ Réponds de manière concise (2-4 phrases maximum) pour permettre aux joueurs de
   } catch (error) {
     console.error("Error in narrative-ai function:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "Une erreur est survenue" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
