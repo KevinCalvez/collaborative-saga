@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { InvitePlayer } from "@/components/InvitePlayer";
 
 interface Message {
   id: string;
@@ -259,15 +260,18 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Label htmlFor="auto-narrator" className="text-sm text-muted-foreground cursor-pointer">
-              Auto-narrateur
-            </Label>
-            <Switch
-              id="auto-narrator"
-              checked={autoNarrator}
-              onCheckedChange={setAutoNarrator}
-            />
+          <div className="flex items-center gap-3">
+            <InvitePlayer storyId={storyId} />
+            <div className="flex items-center gap-2">
+              <Label htmlFor="auto-narrator" className="text-sm text-muted-foreground cursor-pointer">
+                Auto-narrateur
+              </Label>
+              <Switch
+                id="auto-narrator"
+                checked={autoNarrator}
+                onCheckedChange={setAutoNarrator}
+              />
+            </div>
           </div>
         </div>
       </div>
