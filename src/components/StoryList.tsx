@@ -9,8 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Globe, Users } from "lucide-react";
+import { Lock, Globe, Users, LogOut, Plus } from "lucide-react";
 import { JoinStoryDialog } from "./JoinStoryDialog";
+import { ProfileSettings } from "./ProfileSettings";
+import { ImageGenerator } from "./ImageGenerator";
 
 interface Story {
   id: string;
@@ -215,17 +217,21 @@ export const StoryList = ({ onSelectStory }: StoryListProps) => {
             Tes Chroniques
           </h1>
           <div className="flex gap-2">
+            <ProfileSettings />
+            <ImageGenerator />
             <Button
               onClick={handleLogout}
               variant="outline"
               className="border-border hover:bg-accent"
             >
+              <LogOut className="h-4 w-4 mr-2" />
               Déconnexion
             </Button>
             <Button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="bg-primary text-primary-foreground hover:shadow-[var(--shadow-glow)] transition-shadow"
             >
+              <Plus className="h-4 w-4 mr-2" />
               {showCreateForm ? "Annuler" : "Nouvelle Histoire"}
             </Button>
           </div>
