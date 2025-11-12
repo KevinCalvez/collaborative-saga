@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Get JWT token from Authorization header (already validated by verify_jwt=true)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -22,15 +22,15 @@ serve(async (req) => {
       });
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    // Extract JWT token
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Decode JWT to get user info (already validated by Supabase)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -40,11 +40,16 @@ serve(async (req) => {
     
     // Verify user is participant in the story
     if (storyId) {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
       const { data: participant } = await supabaseClient
         .from('story_participants')
         .select('id')
         .eq('story_id', storyId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (!participant) {
