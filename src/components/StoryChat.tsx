@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { InvitePlayer } from "@/components/InvitePlayer";
 import { CharacterSheet } from "@/components/CharacterSheet";
+import { ImageGenerator } from "@/components/ImageGenerator";
 import { z } from "zod";
 
 const messageSchema = z.object({
@@ -284,6 +285,7 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
           </div>
 
           <div className="flex items-center gap-3">
+            <ImageGenerator />
             <CharacterSheet storyId={storyId} />
             <InvitePlayer storyId={storyId} />
             <div className="flex items-center gap-2">
