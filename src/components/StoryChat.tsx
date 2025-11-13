@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { InvitePlayer } from "@/components/InvitePlayer";
 import { CharacterSheet } from "@/components/CharacterSheet";
 import { ImageGenerator } from "@/components/ImageGenerator";
+import { DiceRoller } from "@/components/DiceRoller";
 import { z } from "zod";
 
 const messageSchema = z.object({
@@ -168,11 +169,13 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
     };
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const sendMessage = async (e?: React.FormEvent, customContent?: string) => {
+    e?.preventDefault();
+    
+    const messageContent = (customContent || newMessage).trim();
     
     // Validate input
-    const validation = messageSchema.safeParse({ content: newMessage });
+    const validation = messageSchema.safeParse({ content: messageContent });
     if (!validation.success) {
       toast({
         title: "Erreur",
@@ -183,8 +186,9 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
     }
 
     setLoading(true);
-    const messageContent = newMessage.trim();
-    setNewMessage(""); // Vider immédiatement pour meilleure UX
+    if (!customContent) {
+      setNewMessage(""); // Vider uniquement si c'est un message normal
+    }
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -200,7 +204,9 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
       if (error) throw error;
     } catch (error: any) {
       console.error('Send message error:', error);
-      setNewMessage(messageContent); // Remettre le message en cas d'erreur
+      if (!customContent) {
+        setNewMessage(messageContent); // Remettre uniquement si c'est un message normal
+      }
       toast({ 
         title: "Erreur", 
         description: "Impossible d'envoyer le message", 
@@ -209,6 +215,10 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDiceRoll = (result: string) => {
+    sendMessage(undefined, result);
   };
 
   const invokeNarrator = async () => {
@@ -285,6 +295,7 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
           </div>
 
           <div className="flex items-center gap-3">
+            <DiceRoller onRoll={handleDiceRoll} disabled={loading} />
             <ImageGenerator />
             <CharacterSheet storyId={storyId} />
             <InvitePlayer storyId={storyId} />
@@ -325,7 +336,14 @@ export const StoryChat = ({ storyId, onBack }: StoryChatProps) => {
                   >
                     {message.is_ai_narrator ? "Narrateur" : message.username || "Joueur"}
                   </p>
-                  <p className="text-foreground leading-relaxed">{message.content}</p>
+                  <p 
+                    className="text-foreground leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: message.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br />')
+                    }}
+                  />
                 </div>
               </div>
             </Card>
