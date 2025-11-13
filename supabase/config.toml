@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.generate-scene-image]
 verify_jwt = true
+
+[functions.character-assistant]
+verify_jwt = false
