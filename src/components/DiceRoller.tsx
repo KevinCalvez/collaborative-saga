@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dices } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Dice3D } from "./Dice3D";
 
 interface DiceRollerProps {
   onRoll: (result: string) => void;
@@ -18,6 +19,7 @@ export const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
   const [diceCount, setDiceCount] = useState("1");
   const [modifier, setModifier] = useState("0");
   const [lastResult, setLastResult] = useState<{ rolls: number[]; total: number; } | null>(null);
+  const [isRolling, setIsRolling] = useState(false);
 
   const diceTypes = [
     { value: "4", label: "d4" },
@@ -29,6 +31,15 @@ export const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
     { value: "100", label: "d100" },
   ];
 
+  useEffect(() => {
+    if (isRolling) {
+      const timer = setTimeout(() => {
+        setIsRolling(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isRolling]);
+
   const rollDice = () => {
     const count = parseInt(diceCount) || 1;
     const sides = parseInt(diceType) || 6;
@@ -37,6 +48,8 @@ export const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
     if (count < 1 || count > 20) {
       return;
     }
+
+    setIsRolling(true);
 
     const rolls: number[] = [];
     for (let i = 0; i < count; i++) {
@@ -53,8 +66,11 @@ export const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
     const modText = mod !== 0 ? ` ${mod >= 0 ? '+' : ''}${mod}` : '';
     const resultMessage = `🎲 Lance ${count}d${sides}${modText}: [${rollsText}]${modText ? ` (${sum}${modText})` : ''} = **${total}**`;
 
-    onRoll(resultMessage);
-    setOpen(false);
+    setTimeout(() => {
+      onRoll(resultMessage);
+      setIsRolling(false);
+      setOpen(false);
+    }, 2000);
   };
 
   return (
@@ -80,22 +96,26 @@ export const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
 
         <div className="space-y-4">
           {lastResult && (
-            <div className="p-4 rounded-lg bg-accent/20 border border-accent">
-              <div className="flex items-center gap-2 mb-2">
-                <Dices className="h-5 w-5 text-accent" />
-                <span className="font-semibold text-foreground">Dernier lancer</span>
+            <>
+              <Dice3D rolls={lastResult.rolls} isRolling={isRolling} />
+              
+              <div className="p-4 rounded-lg bg-accent/20 border border-accent">
+                <div className="flex items-center gap-2 mb-2">
+                  <Dices className="h-5 w-5 text-accent" />
+                  <span className="font-semibold text-foreground">Résultat</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {lastResult.rolls.map((roll, i) => (
+                    <Badge key={i} variant="secondary" className="text-lg px-3 py-1">
+                      {roll}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="mt-2 text-2xl font-bold text-accent">
+                  Total: {lastResult.total}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {lastResult.rolls.map((roll, i) => (
-                  <Badge key={i} variant="secondary" className="text-lg px-3 py-1">
-                    {roll}
-                  </Badge>
-                ))}
-              </div>
-              <div className="mt-2 text-2xl font-bold text-accent">
-                Total: {lastResult.total}
-              </div>
-            </div>
+            </>
           )}
 
           <div className="space-y-2">
@@ -139,10 +159,10 @@ export const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
           <Button
             onClick={rollDice}
             className="w-full bg-accent text-accent-foreground hover:shadow-[var(--shadow-glow)]"
+            disabled={isRolling}
           >
             <Dices className="mr-2 h-4 w-4" />
-            Lancer {diceCount}d{diceType}
-            {parseInt(modifier) !== 0 && ` ${parseInt(modifier) >= 0 ? '+' : ''}${modifier}`}
+            {isRolling ? "Lancement en cours..." : `Lancer ${diceCount}d${diceType}${parseInt(modifier) !== 0 ? ` ${parseInt(modifier) >= 0 ? '+' : ''}${modifier}` : ''}`}
           </Button>
         </div>
       </DialogContent>
